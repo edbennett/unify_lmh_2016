@@ -1,0 +1,60 @@
+rule all:
+    input:
+        "assets/sigmamodel.csv",
+        "assets/su2_adjoint_lattice_data.csv",
+
+
+rule get_gaugegravity_csvs:
+    output:
+        "{dir}/Fig4.csv",
+        "{dir}/Fig5.csv",
+    conda:
+        "envs/zenodo_get.yml"
+    shell:
+        r"zenodo_get https://doi.org/10.5281/zenodo.13128485 -g Fig\?.csv -o {wildcards.dir}"
+
+
+rule get_su2_code:
+    output:
+        "{dir}/su2_analysis.zip"
+    conda:
+        "envs/zenodo_get.yml"
+    shell:
+        r"zenodo_get https://doi.org/10.5281/zenodo.12802810 -g su2_analysis.zip -o {wildcards.dir}"
+
+
+rule unzip_su2_code:
+    input:
+        "{dir}/su2_analysis.zip",
+    output:
+        "{dir}/su2_analysis/external_data/su2_nf2_b2.25.csv",
+    conda:
+        "envs/unzip.yml"
+    shell:
+        "cd {wildcards.dir} && unzip $(basename {input})"
+
+
+rule unify_gaugegravity_data:
+    input:
+        fig4_data="data/Fig4.csv",
+        fig5_data="data/Fig5.csv",
+        script="src/unify_gg.py",
+    output:
+        "assets/sigmamodel.csv",
+    conda:
+        "envs/pandas.yml"
+    shell:
+        "python {input.script} {input.fig4_data} {input.fig5_data} --output_csv {output}"
+
+
+rule unify_su2_data:
+    input:
+        nf1_data="data/su2_nf1_old_data.csv",
+        nf2_data="data/su2_analysis/external_data/su2_nf2_b2.25.csv",
+        script="src/unify_su2.py",
+    output:
+        "assets/su2_adjoint_lattice_data.csv",
+    conda:
+        "envs/pandas.yml"
+    shell:
+        "python {input.script} {input.nf1_data} {input.nf2_data} --output_csv {output}"
